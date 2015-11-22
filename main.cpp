@@ -67,8 +67,12 @@ public:
             output.write((char*)Buffer.data(), sizeof(T) * BufferWidthUsed * BufferHeightUsed);
             return;
         }
+        output.seekp(upperLeftOffset, output.beg);
+        bool skipPerColSeek = (BufferHeightUsed == Rows);
         for (size_t col = 0; col < BufferWidthUsed; ++col) {
-            output.seekp(upperLeftOffset + col * Rows * sizeof(T), output.beg);
+            if (!skipPerColSeek) {
+                output.seekp(upperLeftOffset + col * Rows * sizeof(T), output.beg);
+            }
             for (size_t row = 0; row < BufferHeightUsed; ++row) {
                 output.write((char*)(Buffer.data() + col + row * BufferWidthUsed), sizeof(T));
             }
