@@ -19,6 +19,14 @@ public:
     {
     }
 
+    size_t RowsDiff() const {
+        return (Cols < BLOCK_SIZE) ? (BLOCK_SIZE * BLOCK_SIZE / Cols) : BLOCK_SIZE;
+    }
+
+    size_t ColsDiff() const {
+        return (Rows < BLOCK_SIZE) ? (BLOCK_SIZE * BLOCK_SIZE / Rows) : BLOCK_SIZE;
+    }
+
     void Read(size_t leftCol, size_t upperRow) {
         if (LeftCacheCol == leftCol && UpperCacheRow == upperRow) {
             return;
@@ -28,8 +36,8 @@ public:
         }
         LeftCacheCol = leftCol;
         UpperCacheRow = upperRow;
-        BufferWidthUsed = std::min(BLOCK_SIZE, Cols - leftCol);
-        BufferHeightUsed = std::min(BLOCK_SIZE, Rows - upperRow);
+        BufferWidthUsed = std::min(ColsDiff(), Cols - leftCol);
+        BufferHeightUsed = std::min(RowsDiff(), Rows - upperRow);
 
         size_t lineSize = BufferWidthUsed * sizeof(T);
         size_t upperLeftOffset = Offset + (UpperCacheRow * Cols + LeftCacheCol) * sizeof(T);
@@ -41,7 +49,7 @@ public:
         }
     }
 
-    void DebugPrint() {
+    void DebugPrint() const {
         auto bufferPtr = Buffer.data();
         for (size_t row = 0; row < BufferHeightUsed; ++row) {
             for (size_t col = 0; col < BufferWidthUsed; ++col, ++bufferPtr) {
@@ -54,6 +62,11 @@ public:
 
     void WriteTransponsed(std::ofstream& output) {
         size_t upperLeftOffset = Offset + (LeftCacheCol * Rows + UpperCacheRow) * sizeof(T);
+        if (Cols == 1 || Rows == 1) {
+            output.seekp(upperLeftOffset, output.beg);
+            output.write((char*)Buffer.data(), sizeof(T) * BufferWidthUsed * BufferHeightUsed);
+            return;
+        }
         for (size_t col = 0; col < BufferWidthUsed; ++col) {
             output.seekp(upperLeftOffset + col * Rows * sizeof(T), output.beg);
             for (size_t row = 0; row < BufferHeightUsed; ++row) {
@@ -99,8 +112,11 @@ int main() {
     ReadInputShape("input.bin", &rowsCount, &colsCount);
     TExtMatrix<uint8_t, BLOCK_LEN> matrix("input.bin", 2 * sizeof(rowsCount), rowsCount, colsCount);
     auto outputFile = InitOutputFile("output.bin", colsCount, rowsCount);
-    for (size_t upperRow = 0; upperRow < rowsCount; upperRow += BLOCK_LEN) {
-        for (size_t leftCol = 0; leftCol < colsCount; leftCol += BLOCK_LEN) {
+    if (colsCount == 1 || rowsCount == 1) {
+
+    }
+    for (size_t upperRow = 0; upperRow < rowsCount; upperRow += matrix.RowsDiff()) {
+        for (size_t leftCol = 0; leftCol < colsCount; leftCol += matrix.ColsDiff()) {
             matrix.Read(leftCol, upperRow);
             matrix.WriteTransponsed(outputFile);
         }
