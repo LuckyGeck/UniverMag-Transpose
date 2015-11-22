@@ -42,10 +42,16 @@ public:
         size_t lineSize = BufferWidthUsed * sizeof(T);
         size_t upperLeftOffset = Offset + (UpperCacheRow * Cols + LeftCacheCol) * sizeof(T);
         char* bufferPtr = (char*)Buffer.data();
-        for (size_t row = 0; row < BufferHeightUsed; ++row) {
-            File.seekg(upperLeftOffset + row * Cols * sizeof(T), File.beg);
-            File.read(bufferPtr, lineSize);
-            bufferPtr += lineSize;
+        bool skipPerRowSeek = (BufferWidthUsed == Cols);
+        if (skipPerRowSeek) {
+            File.seekg(upperLeftOffset, File.beg);
+            File.read(bufferPtr, lineSize * BufferHeightUsed);
+        } else {
+            for (size_t row = 0; row < BufferHeightUsed; ++row) {
+                File.seekg(upperLeftOffset + row * Cols * sizeof(T), File.beg);
+                File.read(bufferPtr, lineSize);
+                bufferPtr += lineSize;
+            }
         }
     }
 
