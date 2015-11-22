@@ -15,3 +15,4 @@ set(CMAKE_BUILD_TYPE "Release")
 
 add_executable(transp main.cpp)
 add_executable(generate generate.cpp)
+add_executable(tester tester.cpp)

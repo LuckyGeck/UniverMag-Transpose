@@ -52,6 +52,16 @@ public:
         std::cout << std::endl;
     }
 
+    void WriteTransponsed(std::ofstream& output) {
+        size_t upperLeftOffset = Offset + (LeftCacheCol * Rows + UpperCacheRow) * sizeof(T);
+        for (size_t col = 0; col < BufferWidthUsed; ++col) {
+            output.seekp(upperLeftOffset + col * Rows * sizeof(T), output.beg);
+            for (size_t row = 0; row < BufferHeightUsed; ++row) {
+                output.write((char*)(Buffer.data() + col + row * BufferWidthUsed), sizeof(T));
+            }
+        }
+    }
+
 private:
     std::array<T, BLOCK_SIZE * BLOCK_SIZE> Buffer;
     std::fstream File;
@@ -71,11 +81,11 @@ void ReadInputShape(const char* path, uint32_t* rows, uint32_t* cols) {
     input.read((char*)cols, sizeof(*cols));
 }
 
-std::fstream InitOutputFile(const char* path, uint32_t rows, uint32_t cols) {
-    std::fstream output(path, std::fstream::out | std::fstream::binary);
-    output.seekg(2 * sizeof(rows) + rows * cols * sizeof(uint8_t) - 1, output.beg);
+std::ofstream InitOutputFile(const char* path, uint32_t rows, uint32_t cols) {
+    std::ofstream output(path, std::fstream::binary);
+    output.seekp(2 * sizeof(rows) + rows * cols * sizeof(uint8_t) - 1, output.beg);
     output.put(0);
-    output.seekg(0, output.beg);
+    output.seekp(0, output.beg);
     output.write((char*)&rows, sizeof(rows));
     output.write((char*)&cols, sizeof(cols));
     return output;
@@ -87,9 +97,16 @@ int main() {
     uint32_t rowsCount = 0;
     uint32_t colsCount = 0;
     ReadInputShape("input.bin", &rowsCount, &colsCount);
-    TExtMatrix<uint8_t, 10> matrix("input.bin", 2 * sizeof(rowsCount), rowsCount, colsCount);
-    std::fstream outputFile = InitOutputFile("output.bin", colsCount, rowsCount);
-    matrix.Read(9, 0);
-    matrix.DebugPrint();
+    TExtMatrix<uint8_t, BLOCK_LEN> matrix("input.bin", 2 * sizeof(rowsCount), rowsCount, colsCount);
+    auto outputFile = InitOutputFile("output.bin", colsCount, rowsCount);
+    if (colsCount == 1 || rowsCount == 1) {
+        return 0;
+    }
+    for (size_t upperRow = 0; upperRow < rowsCount; upperRow += BLOCK_LEN) {
+        for (size_t leftCol = 0; leftCol < colsCount; leftCol += BLOCK_LEN) {
+            matrix.Read(leftCol, upperRow);
+            matrix.WriteTransponsed(outputFile);
+        }
+    }
     return 0;
 }
