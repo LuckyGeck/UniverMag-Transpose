@@ -122,9 +122,6 @@ int main() {
     ReadInputShape("input.bin", &rowsCount, &colsCount);
     TExtMatrix<uint8_t, BLOCK_LEN> matrix("input.bin", 2 * sizeof(rowsCount), rowsCount, colsCount);
     auto outputFile = InitOutputFile("output.bin", colsCount, rowsCount);
-    if (colsCount == 1 || rowsCount == 1) {
-
-    }
     for (size_t upperRow = 0; upperRow < rowsCount; upperRow += matrix.RowsDiff()) {
         for (size_t leftCol = 0; leftCol < colsCount; leftCol += matrix.ColsDiff()) {
             matrix.Read(leftCol, upperRow);
