@@ -64,10 +64,32 @@ private:
     size_t BufferWidthUsed = 0;
     size_t BufferHeightUsed = 0;
 };
+
+void ReadInputShape(const char* path, uint32_t* rows, uint32_t* cols) {
+    std::fstream input(path, std::fstream::in | std::fstream::binary);
+    input.read((char*)rows, sizeof(*rows));
+    input.read((char*)cols, sizeof(*cols));
+}
+
+std::fstream InitOutputFile(const char* path, uint32_t rows, uint32_t cols) {
+    std::fstream output(path, std::fstream::out | std::fstream::binary);
+    output.seekg(2 * sizeof(rows) + rows * cols * sizeof(uint8_t) - 1, output.beg);
+    output.put(0);
+    output.seekg(0, output.beg);
+    output.write((char*)&rows, sizeof(rows));
+    output.write((char*)&cols, sizeof(cols));
+    return output;
+}
+
 } // anonymous namespace
 
 int main() {
-    TExtMatrix<uint8_t, 10> matrix("input.bin", 2 * sizeof(uint32_t), 10, 10);
+    uint32_t rowsCount = 0;
+    uint32_t colsCount = 0;
+    ReadInputShape("input.bin", &rowsCount, &colsCount);
+    TExtMatrix<uint8_t, 10> matrix("input.bin", 2 * sizeof(rowsCount), rowsCount, colsCount);
+    std::fstream outputFile = InitOutputFile("output.bin", colsCount, rowsCount);
     matrix.Read(9, 0);
     matrix.DebugPrint();
+    return 0;
 }
